@@ -1,0 +1,10 @@
+services:
+  aromiraaputin:
+    container_name: aromiraaputin
+    build: .
+    ports:
+      - "8090:8090"
+    restart: unless-stopped
+    # environment:
+    #   - AROMIRAAPUTIN_CITY=jyvaskyla
+    #   - AROMIRAAPUTIN_FAVORITES=MyllytupaPK:Myllytuvan päiväkoti,KeltinmakiKOU:Keltinmäen koulu

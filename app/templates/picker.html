@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Aromiraaputin</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #1a1a1a;
+            --muted: #666666;
+            --border: #e0e0e0;
+            --card-bg: #f8f8f8;
+            --accent: #e31937;
+            --input-bg: #ffffff;
+        }
+        {% if theme == "dark" %}
+        :root {
+            --bg: #1a1a1a;
+            --text: #e0e0e0;
+            --muted: #999999;
+            --border: #333333;
+            --card-bg: #242424;
+            --accent: #ff4d6a;
+            --input-bg: #2a2a2a;
+        }
+        {% endif %}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--accent);
+        }
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 4px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--input-bg);
+            color: var(--text);
+            font-size: 15px;
+            appearance: auto;
+        }
+        select:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: -1px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .shortcuts {
+            margin-bottom: 16px;
+        }
+        .shortcuts-label {
+            font-weight: 500;
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .shortcut {
+            display: block;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 15px;
+        }
+        .shortcut:hover {
+            border-color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <h1>Aromiraaputin</h1>
+
+    <label for="city">Kaupunki</label>
+    <select id="city" onchange="window.location.href='/menu?theme={{ theme }}&city='+this.value">
+        {% for key, name in cities.items() %}
+        <option value="{{ key }}" {% if key == city %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+    </select>
+
+    {% if favorites %}
+    <div class="shortcuts">
+        <div class="shortcuts-label">Pikavalinnat</div>
+        {% for fav in favorites %}
+        <a class="shortcut" href="/menu?restaurant={{ fav.code }}&range=week&theme={{ theme }}&city={{ city }}">{{ fav.name }}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form id="form" method="get" action="/menu">
+        <input type="hidden" name="theme" value="{{ theme }}">
+        <input type="hidden" name="city" value="{{ city }}">
+
+        <label for="range">Aikajakso</label>
+        <select id="range" name="range">
+            <option value="today" {% if range == "today" %}selected{% endif %}>Tänään</option>
+            <option value="week" {% if range == "week" %}selected{% endif %}>Tämä viikko</option>
+            <option value="nextweek" {% if range == "nextweek" %}selected{% endif %}>Seuraava viikko</option>
+            <option value="week3" {% if range == "week3" %}selected{% endif %}>3. viikko</option>
+            <option value="week4" {% if range == "week4" %}selected{% endif %}>4. viikko</option>
+        </select>
+
+        <label for="type">Ravintolatyyppi</label>
+        <select id="type">
+            <option value="">Valitse...</option>
+            {% for type_name in grouped %}
+            <option value="{{ type_name }}">{{ type_name }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="restaurant">Ravintola</label>
+        <select id="restaurant" name="restaurant" disabled>
+            <option value="">Valitse ensin tyyppi</option>
+        </select>
+
+        <button type="submit" id="submit" disabled>Näytä ruokalista</button>
+    </form>
+
+    <script>
+        const grouped = {{ grouped | tojson }};
+        const typeSelect = document.getElementById('type');
+        const restSelect = document.getElementById('restaurant');
+        const submitBtn = document.getElementById('submit');
+
+        typeSelect.addEventListener('change', () => {
+            const type = typeSelect.value;
+            restSelect.innerHTML = '';
+            if (!type) {
+                restSelect.innerHTML = '<option value="">Valitse ensin tyyppi</option>';
+                restSelect.disabled = true;
+                submitBtn.disabled = true;
+                return;
+            }
+            const restaurants = grouped[type] || [];
+            restSelect.innerHTML = '<option value="">Valitse ravintola...</option>';
+            restaurants.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.code;
+                opt.textContent = r.name;
+                restSelect.appendChild(opt);
+            });
+            restSelect.disabled = false;
+            submitBtn.disabled = true;
+        });
+
+        restSelect.addEventListener('change', () => {
+            submitBtn.disabled = !restSelect.value;
+        });
+    </script>
+</body>
+</html>
