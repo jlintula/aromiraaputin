@@ -66,12 +66,12 @@ Restaurant codes can be found via the `/api/restaurants?city={city}` endpoint.
 
 ## Docker image
 
-Pre-built images are published to GitHub Container Registry on every push to `main`:
+Pre-built images are published to GitHub Container Registry on every push to `main`. Example `docker-compose.yml` file:
 
 ```yaml
 services:
   aromiraaputin:
-    image: ghcr.io/<username>/aromi-jkl-scraper:latest
+    image: ghcr.io/jlintula/aromiraaputin:latest
     ports:
       - "8090:8090"
     restart: unless-stopped
