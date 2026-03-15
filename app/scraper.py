@@ -17,6 +17,9 @@ from .models import (
 
 logger = logging.getLogger(__name__)
 
+VERSION = "0.1"
+USER_AGENT = f"Aromiraaputin/{VERSION}"
+
 CITIES: dict[str, dict[str, str]] = {
     "jyvaskyla": {
         "name": "Jyväskylä",
@@ -47,7 +50,11 @@ def get_city_config(city: str) -> dict[str, str]:
 
 class AromiScraper:
     def __init__(self) -> None:
-        self._client = httpx.AsyncClient(follow_redirects=True, timeout=30)
+        self._client = httpx.AsyncClient(
+            follow_redirects=True,
+            timeout=30,
+            headers={"User-Agent": USER_AGENT},
+        )
 
     async def close(self) -> None:
         await self._client.aclose()
@@ -95,13 +102,21 @@ class AromiScraper:
         return RestaurantList(types=types, restaurants=restaurants)
 
     async def _get_diner_group(
-        self, base_url: str, restaurant_code: str, restaurant_id: str
+        self,
+        base_url: str,
+        restaurant_code: str,
+        restaurant_id: str,
+        start_date: datetime,
+        end_date: datetime,
     ) -> dict | None:
         """Get the first diner group for a restaurant."""
-        now = datetime.now(timezone.utc).isoformat()
         r = await self._client.get(
             f"{base_url}/{restaurant_code}/api/GetRestaurantPublicDinerGroups",
-            params={"id": restaurant_id, "startDate": now, "endDate": now},
+            params={
+                "id": restaurant_id,
+                "startDate": start_date.isoformat(),
+                "endDate": end_date.isoformat(),
+            },
         )
         r.raise_for_status()
         groups = r.json()
@@ -123,7 +138,9 @@ class AromiScraper:
         """Fetch menu for a restaurant within a date range."""
         cfg = get_city_config(city)
         base_url = cfg["base_url"]
-        dg = await self._get_diner_group(base_url, restaurant_code, restaurant_id)
+        dg = await self._get_diner_group(
+            base_url, restaurant_code, restaurant_id, start_date, end_date
+        )
         if not dg:
             return WeekMenu(
                 restaurant="", restaurant_code=restaurant_code, days=[]
